@@ -1,12 +1,11 @@
 # dataset path
-path: D:\workspace\github\RTDETR-main #项目路径
-train: D:\workspace\github\RTDETR-main\dataset\images\train
-val: D:\workspace\github\RTDETR-main\dataset\images\val
-test: D:\workspace\github\RTDETR-main\dataset\images\test
+path: /root/RTDETR-main/ #项目路径
+train: /root/RTDETR-main/dataset/images/train
+val: /root/RTDETR-main/dataset/images/val
+test: /root/RTDETR-main/dataset/images/test
 
 # number of classes
 nc: 6
 
 # class names
-# names: ['ship']
 names: ['missing_hole', 'mouse_bite', 'open_circuit', 'short', 'spurious_copper', 'spur']
