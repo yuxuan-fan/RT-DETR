@@ -1,8 +1,8 @@
 # dataset path
-path: /root/RTDETR-main/ #项目路径
-train: /root/RTDETR-main/dataset/images/train
-val: /root/RTDETR-main/dataset/images/val
-test: /root/RTDETR-main/dataset/images/test
+path: /root/autodl-fs/ 
+train: /root/autodl-fs/images/train
+val: /root/autodl-fs/images/val
+test: /root//autodl-fs/images/test
 
 # number of classes
 nc: 6
