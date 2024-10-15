@@ -3,7 +3,7 @@ warnings.filterwarnings('ignore')
 from ultralytics import RTDETR
 
 if __name__ == '__main__':
-    model = RTDETR('ultralytics/cfg/models/rt-detr/rtdetr-DySnake.yaml')
+    model = RTDETR('ultralytics\cfg\models\rt-detr\rtdetr-p2.yaml')
     # model.load('D:\\workspace\\github\\RTDETR-main\\weights\\rtdetr-r18.pt') # 预训练权重是否要用r18
     model.train(data='dataset/data.yaml',
                 cache=False,
@@ -17,5 +17,5 @@ if __name__ == '__main__':
 
                 # resume='', # last.pt path
                 project='runs/train/',
-                name='exp-DCNV2-D',
+                name='exp',
                 )
