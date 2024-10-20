@@ -1291,20 +1291,21 @@ class Faster_Block(nn.Module):
                  ):
         super().__init__()
         self.dim = dim
-        self.mlp_ratio = mlp_ratio
+        self.mlp_ratio = mlp_ratio #存储传入的 dim 和 mlp_ratio
+        #如果 drop_path 大于 0，则使用 DropPath 类来进行随机深度丢弃，否则使用 nn.Identity() 保持输入输出不变。
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.n_div = n_div
 
         mlp_hidden_dim = int(dim * mlp_ratio)
 
         mlp_layer = [
-            Conv(dim, mlp_hidden_dim, 1),
-            nn.Conv2d(mlp_hidden_dim, dim, 1, bias=False)
+            Conv(dim, mlp_hidden_dim, 1),#使用 1x1 卷积将通道数从 dim 扩展到 mlp_hidden_dim
+            nn.Conv2d(mlp_hidden_dim, dim, 1, bias=False)#使用 1x1 卷积将通道数从 mlp_hidden_dim 压缩回 dim
         ]
-
+        #空间混合层
         self.mlp = nn.Sequential(*mlp_layer)
 
-        self.spatial_mixing = Partial_conv3(
+        self.spatial_mixing = Partial_conv3( #Partial Convolution进行空间混合 视作是对特征图的空间信息进行混合或处理。
             dim,
             n_div,
             pconv_fw_type
@@ -2371,15 +2372,19 @@ class BottleNeck_DualConv(BottleNeck):
 
 ######################################## Attentional Scale Sequence Fusion start ########################################
 
-class Zoom_cat(nn.Module):
+class Zoom_cat(nn.Module): #Zoom_cat模块的作用是对输入的三个特征图进行处理并拼接。
+    #它接收三个不同尺度的特征图，通过特定的操作将它们调整到相同的尺寸，然后进行拼接，为后续的处理提供一个组合的特征表示。
     def __init__(self):
         super().__init__()
 
     def forward(self, x):
         l, m, s = x[0], x[1], x[2]
         tgt_size = m.shape[2:]
+        #大尺度特征图l，使用自适应最大池化和自适应平均池化将其调整到与中间尺度特征图m相同的尺寸，并将两个结果相加
         l = F.adaptive_max_pool2d(l, tgt_size) + F.adaptive_avg_pool2d(l, tgt_size)
+        #对于小尺度特征图s，使用插值方法将其调整到与中间尺度特征图m相同的尺寸，这里使用的插值模式是 'nearest'，即最近邻插值。
         s = F.interpolate(s, m.shape[2:], mode='nearest')
+        #将调整后的三个特征图沿着通道维度进行拼接，得到lms并返回。
         lms = torch.cat([l, m, s], dim=1)
         return lms
 
