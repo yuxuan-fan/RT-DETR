@@ -7,26 +7,50 @@ scales: # model compound scaling constants, i.e. 'model=yolov8n-cls.yaml' will c
   # [depth, width, max_channels]
   l: [1.00, 1.00, 1024]
 
-# From BiliBili 魔鬼面具
+
 backbone:
   # [from, repeats, module, args]
+  # -1 表示输入来自上一层的输出。由于这是模型的第一个层，这里的输入应该是原始图像。
+  # 1 这个值表示该层会重复一次，也就是只执行一次卷积操作。
+  # ConvNormLayer 模块类型 卷积操作、归一化层（如Batch Normalization）和激活函数（如ReLU）
+  # 32 输出通道数，表示该卷积层会产生32个特征图。 3 卷积核大小为3x3 2 stride步幅为2 填充padding 0
+  # 输入 640 *640 输出319*319*32
   - [-1, 1, ConvNormLayer, [32, 3, 2, None, False, 'relu']] # 0-P1/2
+
+  # 319*319*32 输出317x317x32
   - [-1, 1, ConvNormLayer, [32, 3, 1, None, False, 'relu']] # 1
+
+  # 317x317x32 输出315x315x64
   - [-1, 1, ConvNormLayer, [64, 3, 1, None, False, 'relu']] # 2
+
+  #  2D最大池化层，通常用于降低特征图的尺寸（即进行下采样），同时保留重要的特征。
+  # 【3，2，1】池化窗口的大小为 3x3，表示每次取3x3的区域内的最大值 步幅（stride）为 2 padding1
+  # 315x315x64 输出158x158x64 这里的/4推测为输入图像的规格/4
   - [-1, 1, nn.MaxPool2d, [3, 2, 1]] # 3-P2/4
   
   # [ch_out, block_type, block_nums, stage_num, act, variant]
+  # 不变 158x158x64 输出158x158x64
+  # stage_num在每个阶段的第一个块（即当 i == 0 时）会执行下采样（使用步幅为 2），除非当前处于第二阶段
+  # 详细见class Blocks(nn.Module)
   - [-1, 1, Blocks, [64, BasicBlock_Faster_Block, 2, 2, 'relu']] # 4
+  # 158x158x64 输出  79 x 79 x 128 stage_num 3，所以第一个块执行下采样，第二个不下采样
   - [-1, 1, Blocks, [128, BasicBlock_Faster_Block, 2, 3, 'relu']] # 5-P3/8
+  # 79 x 79 x 128 输出39 x 39 x 256
   - [-1, 1, Blocks, [256, BasicBlock_Faster_Block, 2, 4, 'relu']] # 6-P4/16
+  # 39 x 39 x 256 输出19 x 19 x 512
   - [-1, 1, Blocks, [512, BasicBlock_Faster_Block, 2, 5, 'relu']] # 7-P5/32
 
 head:
+#  19 x 19 x 256
   - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 8 input_proj.2
+# 经过 AIFI 层后，输入张量 19 × 19 × 256 19×19×256 将变为19×19×1024，保留了空间信息，同时增加了通道数以增强特征表示能力。
   - [-1, 1, AIFI, [1024, 8]] # 9
+# 1×1 卷积操作，输入通道数为 1024，输出通道数为 256。这种类型的卷积操作通常用于调整通道数，同时不改变空间尺寸。
+# 19×19×1024 输出256,19,19
   - [-1, 1, Conv, [256, 1, 1]]  # 10, Y5, lateral_convs.0
-
+# 256×19×19 输出256,38,38
   - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 11
+第五层作为输入，也就是P3
   - [5, 1, Conv, [128, 1, 1, None, 1, 1, False]]  # 12 input_proj.1
   - [[-1, 6, -2], 1, Zoom_cat, []] # 13
   - [-1, 3, RepC3, [128, 0.5]]  # 14, fpn_blocks.0
